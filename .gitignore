@@ -1,0 +1,12 @@
+# virtual env
+**/venv/**
+
+# log dir
+**/logs/**
+**.log
+
+# image
+**.png
+
+# ignore svn
+**.svn
