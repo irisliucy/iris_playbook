@@ -37,9 +37,12 @@ def main():
     sda.pretrain_network_gen(mnist_train_gen_f)
     trained_parameters = sda.finetune_parameters_gen(get_mnist_batch_generator(True, batch_size=100, batch_limit=18000),
                                                      output_dim=10)
-    transformed_filepath = "../data/mnist_test_transformed.csv"
-    test_ys_filepath = "../data/mnist_test_ys.csv"
-    output_filepath = "../data/mnist_pred_ys.csv"
+    mainDir = "../data"
+    if not os.path.exists(mainDir):
+        os.makedirs(mainDir)
+    transformed_filepath = mainDir + "/mnist_test_transformed.csv"
+    test_ys_filepath = mainDir + "/data/mnist_test_ys.csv"
+    output_filepath = mainDir + "/data/mnist_pred_ys.csv"
 
     sda.write_encoded_input_with_ys(transformed_filepath, test_ys_filepath,
                                     get_mnist_batch_generator(False, batch_size=100, batch_limit=100))
