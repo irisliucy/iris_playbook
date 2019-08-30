@@ -4,10 +4,10 @@ Example testing SDA model on MNIST digits.
 
 from sdautoencoder import SDAutoencoder
 from softmax import test_model
-from tensorflow.examples.tutorials.mnist import input_data
+# from tensorflow.examples.tutorials.mnist import input_data
 import tensorflow as tf
 
-mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
+mnist = input_data.read_data_sets("./MNIST_data/", one_hot=True)
 
 
 def get_mnist_batch_generator(is_train, batch_size, batch_limit=100):
@@ -34,7 +34,10 @@ def main():
 
     mnist_train_gen_f = lambda: get_mnist_batch_xs_generator(True, batch_size=100, batch_limit=12000)
 
+    # stacked autoencoder pretraining locally, layer by layer
     sda.pretrain_network_gen(mnist_train_gen_f)
+
+    # fine-tune the model by training all the weights
     trained_parameters = sda.finetune_parameters_gen(get_mnist_batch_generator(True, batch_size=100, batch_limit=18000),
                                                      output_dim=10)
     mainDir = "../data"
