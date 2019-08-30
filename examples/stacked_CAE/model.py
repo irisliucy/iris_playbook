@@ -17,12 +17,15 @@ class CDAutoEncoder(nn.Module):
     def __init__(self, input_size, output_size, stride):
         super(CDAutoEncoder, self).__init__()
 
+        # encoder
         self.forward_pass = nn.Sequential(
             nn.Conv2d(input_size, output_size, kernel_size=2, stride=stride, padding=0),
             nn.ReLU(),
         )
+
+        # decoder
         self.backward_pass = nn.Sequential(
-            nn.ConvTranspose2d(output_size, input_size, kernel_size=2, stride=2, padding=0), 
+            nn.ConvTranspose2d(output_size, input_size, kernel_size=2, stride=2, padding=0),
             nn.ReLU(),
         )
 
@@ -42,7 +45,7 @@ class CDAutoEncoder(nn.Module):
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
-            
+
         return y.detach()
 
     def reconstruct(self, x):

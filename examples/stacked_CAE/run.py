@@ -51,6 +51,7 @@ for epoch in range(num_epochs):
         prediction = classifier(features.view(features.size(0), -1))
         loss = criterion(prediction, target)
 
+        # Zero gradients, perform a backward pass, and update the weights.
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
