@@ -6,8 +6,8 @@ from math import sqrt
 from utils import *
 
 __author__ = "Ken Chen"
-__copyright__ = "Copyright (C) 2016 Ken Chen, HBI Solutions, Inc."
-__version__ = "1.0"
+# __copyright__ = "Copyright (C) 2016 Ken Chen, HBI Solutions, Inc."
+# __version__ = "1.0"
 
 
 """
@@ -239,6 +239,7 @@ class SDAutoencoder:
         self.hidden_layers = self.create_new_layers(dims, activations)
         self.sess = sess
 
+        self.corruption = False # optionally apply denosing autoencoder
         self.noise = noise
         self.loss = loss
         self.pretrain_lr = pretrain_lr
@@ -465,6 +466,7 @@ class SDAutoencoder:
                 attach_variable_summaries(decode["weights"], decode["weights"].name, summ_list=summary_list)
                 attach_variable_summaries(decode["biases"], decode["biases"].name, summ_list=summary_list)
 
+            # apply activation to F(wx+b)
             with tf.name_scope("encoded_and_decoded"):
                 encoded = hidden_layer.activate(tf.matmul(x_corrupt, encode["weights"]) + encode["biases"])
                 decoded = hidden_layer.activate(tf.matmul(encoded, decode["weights"]) + decode["biases"])
