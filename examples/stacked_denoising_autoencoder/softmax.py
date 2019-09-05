@@ -1,4 +1,5 @@
 from sdautoencoder import SDAutoencoder, get_batch_generator, merge_generators, stopwatch, DEBUG
+from config import *
 import tensorflow as tf
 import numpy as np
 
@@ -9,15 +10,16 @@ import numpy as np
 # Y_TEST_PATH = "../data/splits/OPYTestSAM.csv"
 
 # NEED TO RENAME FOR EVERY TRIAL
-OUTPUT_PATH = "../data/ami/smote4k/outputs/pred_ys_8_10.csv"
-TRANSFORMED_PATH = "../data/ami/smote4k/outputs/x_test_transformed_8_10.csv"
+mainDir = data_storage_path
+OUTPUT_PATH = mainDir + "/ami/smote4k/outputs/pred_ys_8_10.csv"
+TRANSFORMED_PATH = mainDir + "/ami/smote4k/outputs/x_test_transformed_8_10.csv"
 
-X_TRAIN_PATH = "../data/ami/smote4k/AMI_SAM_train_x.csv"
-Y_TRAIN_PATH = "../data/ami/smote4k/AMI_SAM_train_y.csv"
-X_TEST_PATH = "../data/ami/smote4k/AMI_SAM_test_x.csv"
-Y_TEST_PATH = "../data/ami/smote4k/AMI_SAM_test_y.csv"
+X_TRAIN_PATH = mainDir + "/ami/smote4k/AMI_SAM_train_x.csv"
+Y_TRAIN_PATH = mainDir + "/ami/smote4k/AMI_SAM_train_y.csv"
+X_TEST_PATH = mainDir + "/ami/smote4k/AMI_SAM_test_x.csv"
+Y_TEST_PATH = mainDir + "/ami/smote4k/AMI_SAM_test_y.csv"
 
-VARIABLE_SAVE_PATH = "../data/ami/smote4k/vars/last_vars.ckpt"
+VARIABLE_SAVE_PATH = mainDir + "/ami/smote4k/vars/last_vars.ckpt"
 
 
 def average(lst):
@@ -170,8 +172,8 @@ def unsupervised():
                         batch_size=100,
                         print_step=50)
 
-    layer_1_weights_path = "../data/outputs/last_weights"
-    layer_1_biases_path = "../data/outputs/last_biases"
+    layer_1_weights_path = mainDir + "/outputs/last_weights"
+    layer_1_biases_path = mainDir + "/outputs/last_biases"
 
     sda.pretrain_network(X_TRAIN_PATH, epochs=8)
     sda.write_data(sda.hidden_layers[1].weights, layer_1_weights_path)
