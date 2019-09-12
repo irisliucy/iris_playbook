@@ -1,5 +1,6 @@
 # virtual env
 **/venv/**
+**/research-venv/**
 
 # log dir
 **/logs/**
@@ -10,3 +11,9 @@
 
 # ignore svn
 **.svn
+
+# ignore all ftpconfig
+**.ftpconfig
+
+# ignore data
+**.DS_Store

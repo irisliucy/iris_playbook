@@ -1,10 +1,10 @@
-import tensorflow as tf 
+import tensorflow as tf
 import numpy as np
 
 from lib.activations import l_relu
 
 class CAE:
-	# convolutional autoencoder 
+	# convolutional autoencoder
 
 	def __init__(self, data, filter_dims, hidden_channels, step_size = 0.0001, weight_init_stddev = 0.0001, weight_init_mean = 0.0001, initial_bias_value = 0.0001, strides = None, pooling_type = 'strided_conv', activation_function = 'sigmoid', tie_conv_weights = True, store_model_walkthrough = False, add_tensorboard_summary = True, relu_leak = 0.2, optimizer_type = 'gradient_descent', output_reconstruction_activation = 'sigmoid', regularization_factor = 0, decay_steps = None, decay_rate = 0.1, intialization_debug_output = True):
 
@@ -38,19 +38,20 @@ class CAE:
 			print('-----------------------------------------')
 
 
-		self.data = data # we assume data in NHWC format 
+		self.data = data # we assume data in NHWC format
+		print('Input Data Shape : {}'.format(data.shape))
 
 		self.filter_dims 		= filter_dims 		# height and width of the conv kernels 	for each layer
 		self.hidden_channels 	= hidden_channels	# number of feature maps 				for each layer
-		
+
 		self.strided_conv_strides 	= [1,2,2,1]
-		self.std_strides 			= [1,1,1,1] 
+		self.std_strides 			= [1,1,1,1]
 
 		if str(strides) == 'None':
 			if pooling_type == 'strided_conv':
 				self.strides = [self.strided_conv_strides 	for filter in filter_dims]
 			else:
-				self.strides = [self.std_strides 			for filter in filter_dims]
+				self.strides = [self.std_strides 		warning	for filter in filter_dims]
 
 		self.pooling_type 			= pooling_type
 		self.activation_function	= activation_function
@@ -140,7 +141,7 @@ class CAE:
 		self.all_variables_dict = dict(encoding_w_d + encoding_b_d + reconst_w_d + reconst_b_d)
 
 		print('Initialization finished')
-			
+
 
 	def add_summary(self, summary):
 		self._summaries.append(summary)
@@ -161,6 +162,7 @@ class CAE:
 			depth =  len(self.filter_dims)
 
 			for layer in range(depth):
+				print('>>>>> Layer ', layer)
 
 				# CONVOLUTION
 				if layer == 0:
@@ -174,7 +176,7 @@ class CAE:
 					in_channels = self.hidden_channels[layer - 1]
 				out_channels = self.hidden_channels[layer]
 
-				# print('init layer ', layer, 'conv', ' in-out:', in_channels, out_channels)
+				print('init layer ', layer, 'conv', ' in-out:', in_channels, out_channels)
 
 				# initialize weights and biases:
 				filter_shape = [self.filter_dims[layer][0], self.filter_dims[layer][1], in_channels, out_channels]
@@ -258,7 +260,7 @@ class CAE:
 
 			mse = tf.reduce_mean(tf.squared_difference(self.reconstruction, self.data), name='mean-squared_error')
 
-			self._error = mse 
+			self._error = mse
 
 			# add regularization to the total error
 			for reg_term in self.regularization_terms:
@@ -307,6 +309,7 @@ class CAE:
 	@property
 	def optimize_mse(self):
 		if self._optimize_mse is None:
+			print('initialize mse optimize call')
 
 			optimizer = self.optimizer
 			self._optimize_mse = optimizer.minimize(self.error)
@@ -329,7 +332,7 @@ class CAE:
 
 	@property
 	def logit_reconstruction(self):
-		# returns the node containing the reconstruction before applying the sigmoid function 
+		# returns the node containing the reconstruction before applying the sigmoid function
 		# the logit_reconstruction is separated to use the sigmoid_cross_entropy_with_logits function for the error
 
 		if self._logit_reconstruction is None:
@@ -339,7 +342,7 @@ class CAE:
 			for layer in range(len(self.filter_dims))[::-1]:
 				# go through the layers in reverse order to reconstruct the image
 
-				#print('layer {} reconstruction'.format(layer))
+				print('layer {} reconstruction'.format(layer))
 				#print(self.conv_weights[layer])
 
 				if self.store_model_walkthrough:
@@ -378,7 +381,7 @@ class CAE:
 					reconst_preact = tf.add( tf.nn.conv2d_transpose(tmp_tensor, W, self.pre_conv_shapes[layer], upsampling_strides), c, name='reconstruction_preact_{}'.format(layer))
 
 				else:
-					# conv2d_transpose without upsampling 
+					# conv2d_transpose without upsampling
 					if self.pooling_type == 'strided_conv':
 						strides = self.strided_conv_strides
 					else:
@@ -421,6 +424,7 @@ class CAE:
 
 		if self._reconstruction is None:
 			print('initialize reconstruction')
+			print('>>>> Decoding...')
 
 			if self.output_reconstruction_activation == 'scaled_tanh':
 
@@ -429,8 +433,8 @@ class CAE:
 			else:
 
 				self._reconstruction = tf.nn.sigmoid(self.logit_reconstruction, name='reconstruction')
-		
-		
+
+
 			self._summaries.append(tf.summary.image('input', self.data))
 			self._summaries.append(tf.summary.image('reconstruction', self._reconstruction))
 

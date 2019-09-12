@@ -205,8 +205,16 @@ class SCDAutoencoder:
         assert 0 <= self.noise <= 1, "Invalid noise value given: %s" % self.noise
         assert self.loss in ALLOWED_LOSSES
 
-    def __init__(self, dims, activations, sess, noise=0.0, loss="cross-entropy",
-                 pretrain_lr=0.001, finetune_lr=0.001, batch_size=100, print_step=100):
+    def __init__(self, data, activations, sess, noise=0.0, filter_dims, hidden_channels,
+                    step_size=0.0001, weight_init_stddev=0.0001, weight_init_mean=0.0001, initial_bias_value=0.0001,
+                    strides=None, pooling_type= 'strided_conv', tie_conv_weights=True,
+                    # store_model_walkthrough = visualize_model_walkthrough,
+                    # relu_leak = relu_leak,
+                    # optimizer_type = optimizer_type,
+                    # output_reconstruction_activation=output_reconstruction_activation,
+                    regularization_factor=0):
+    # def __init__(self, dims, activations, sess, noise=0.0, loss="cross-entropy",
+    #              pretrain_lr=0.001, finetune_lr=0.001, batch_size=100, print_step=100):
         """Initializes a Stacked Denoising Autoencoder based on the dimension of each
         layer in the neural network and the activation function of each layer. SDA only
         undergoes parameter setup at initialization. Main functions to utilize the SDA are:
@@ -242,13 +250,23 @@ class SCDAutoencoder:
         :param batch_size: The number of cases fed to the network in each batch from file.
         :param print_step: The number of batches processed before each print progress step.
         """
+        self.data = data
         self.input_dim = dims[0]  # The dimension of the raw input
         self.output_dim = dims[-1]  # The output dimension of the last layer: fully encoded input
         self.hidden_layers = self.create_new_layers(dims, activations)
         self.sess = sess
 
+        # convolution
+        self.filter_dims = filter_dims 		# height and width of the conv kernels 	for each layer
+		self.hidden_channels = hidden_channels	# number of feature maps for each layer
+        self.strides = strides
+        self.pooling_type = pooling_type
+        self.tie_conv_weights = tie_conv_weights
+
+        # denosising
         self.corruption = False # optionally apply denosing autoencoder
         self.noise = noise
+
         self.loss = loss
         self.pretrain_lr = pretrain_lr
         self.finetune_lr = finetune_lr

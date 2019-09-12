@@ -1,4 +1,4 @@
-#!/bin/bash          
+#!/bin/bash
 echo 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
 echo 'XXXXXXXXXXXXXXXXX TRAIN REFERENCE CNN XXXXXXXXXXXXXXXX'
 echo 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
@@ -32,11 +32,11 @@ RUN_PREFIX="reference-random_init"
 for (( i=1; i<=${REF_RUN_NUM}; i++ ))
 do
 	echo "Begin training reference network $i"
-	RUN_NAME="${RUN_PREFIX}_${i}"  
-	
+	RUN_NAME="${RUN_PREFIX}_${i}"
+
 	echo "Run name is: $RUN_NAME"
 
-	python train_and_test_cnn.py $DATASET $CNN_CONFIG_FILE_PATH $INIT_MODE $WEIGHTS_PATH $CNN_LOG_FOLDER $RUN_NAME $TEST_SET_BOOL $PARENT_DIR 
+	python ../../../../train_and_test_cnn.py $DATASET $CNN_CONFIG_FILE_PATH $INIT_MODE $WEIGHTS_PATH $CNN_LOG_FOLDER $RUN_NAME $TEST_SET_BOOL $PARENT_DIR
 done
 
 
@@ -50,6 +50,6 @@ RUN_PREFIX="pre-trained"
 for (( i=1; i<=${PRE_RUN_NUM}; i++ ))
 do
 	echo "Begin training pre-trained network  $i"
-	RUN_NAME="${RUN_PREFIX}_${i}"  
-	python train_and_test_cnn.py $DATASET $CNN_CONFIG_FILE_PATH $INIT_MODE $WEIGHTS_PATH $CNN_LOG_FOLDER $RUN_NAME $TEST_SET_BOOL $PARENT_DIR 
+	RUN_NAME="${RUN_PREFIX}_${i}"
+	python ../../../../train_and_test_cnn.py $DATASET $CNN_CONFIG_FILE_PATH $INIT_MODE $WEIGHTS_PATH $CNN_LOG_FOLDER $RUN_NAME $TEST_SET_BOOL $PARENT_DIR
 done

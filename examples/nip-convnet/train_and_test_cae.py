@@ -2,7 +2,7 @@
 # train and test a convolutional autoencoder with one hidden layer for the MNIST dataset
 # --------------------------------------------------------------------------------------
 
-import tensorflow as tf 
+import tensorflow as tf
 from tensorflow.python.framework import dtypes
 
 import numpy as np
@@ -32,7 +32,7 @@ def main():
 	## ############## ##
 
 	arguments = sys.argv
-	
+
 	print('len(arguments) = {}'.format(len(arguments)))
 	print(arguments)
 
@@ -46,7 +46,7 @@ def main():
 
 		# 2: config file path
 		use_config_file 	= True
-		config_file_path 	= arguments[2] 
+		config_file_path 	= arguments[2]
 		print('Config path 	: {}'.format(config_file_path))
 
 		# 3: weight initialization
@@ -94,7 +94,7 @@ def main():
 		else:
 			root_dir_path = None
 
-	
+
 	elif len(arguments) == 1:
 		print('Using default settings from file')
 
@@ -129,7 +129,7 @@ def main():
 		print('init_weights_path 	 	: (None : resume training | path to old checkpoint to init from')
 		print('log_folder 				: log folder name (used in logs/ and weights/ subdirectories)')
 		print('run_name 				: (None : auto generated run name | custom run name')
-		print('regularization_factor	: (<= 0: do nothing | > 0: factor for L1 regularization of the hidden representation') 
+		print('regularization_factor	: (<= 0: do nothing | > 0: factor for L1 regularization of the hidden representation')
 		print('-----------------------------------------------------------------------------')
 
 		sys.exit(1)
@@ -214,7 +214,7 @@ def main():
 		# reshape the input to NHWD format
 		x_image = tf.reshape(x, [-1, input_size[0], input_size[1], 1])
 
-	else: 
+	else:
 
 		x = tf.placeholder(tf.float32, [None, input_size[0], input_size[1], input_size[2]], name='input_images')
 		x_image = x
@@ -225,7 +225,7 @@ def main():
 
 
 	## #### ##
-	# CONFIG # 
+	# CONFIG #
 	## #### ##
 
 	# TODO Sabbir: begin what needs to be in the config file -----------------------------
@@ -340,7 +340,7 @@ def main():
 	if root_dir_path is not None:
 		log_folder_parent_dir = os.path.join(root_dir_path, 'logs')
 	else:
-		log_folder_parent_dir = 'logs' 
+		log_folder_parent_dir = 'logs'
 
 	log_path = os.path.join(log_folder_parent_dir, log_folder_name, run_name)
 
@@ -365,7 +365,7 @@ def main():
 					os.path.join(log_folder_parent_dir, log_folder_name), \
 					log_path \
 					]
-	
+
 	for directory in check_dirs:
 		if not os.path.exists(directory):
 			os.makedirs(directory)
@@ -379,11 +379,11 @@ def main():
 	# construct autoencoder (5x5 filters, 3 feature maps)
 	autoencoder = CAE(x_image, filter_dims, hidden_channels, step_size, weight_init_stddev, weight_init_mean, initial_bias_value, strides, pooling_type, activation_function, tie_conv_weights, store_model_walkthrough = visualize_model_walkthrough, relu_leak = relu_leak, optimizer_type = optimizer_type, output_reconstruction_activation=output_reconstruction_activation, regularization_factor=regularization_factor)
 
-	sess = tf.Session() 
+	sess = tf.Session()
 	sess.run(tf.global_variables_initializer())
 
 	print("Begin autencoder training")
-	
+
 	writer = tf.summary.FileWriter(log_path, sess.graph)
 
 	# store config file in the folder
@@ -392,15 +392,15 @@ def main():
 	init_iteration = 0
 
 	if initialization_mode == 'resume' or initialization_mode == 'from_folder':
-		# initialize training with weights from a previous training 
+		# initialize training with weights from a previous training
 
 		cwd = os.getcwd()
 
 		if initialization_mode == 'resume':
 			chkpnt_file_path = save_path
-		else: 
+		else:
 			chkpnt_file_path = model_weights_dir
-		
+
 
 		print('Looking for checkpoint')
 
@@ -431,7 +431,7 @@ def main():
 
 
 	else:
-		# always train a new autoencoder 
+		# always train a new autoencoder
 		train_ae(sess, writer, x, autoencoder, dataset, cae_dir, weight_file_name, error_function, batch_size,init_iteration,  max_iterations, chk_iterations, save_prefix = save_path)
 
 	# print('Test the training:')
@@ -452,7 +452,7 @@ def get_weight_file_name(filter_dims, hidden_channels, pooling_type, activation_
 	# architecture:
 	filter_dims_identifier 		= reduce(lambda x,y: '{}|{}'.format(x,y), map(lambda xy: '{},{}'.format(xy[0],xy[1]), filter_dims))
 	hidden_channels_identifier 	= reduce(lambda x,y: '{}|{}'.format(x,y), hidden_channels)
-	
+
 	mp_identifier = pooling_type
 
 	if tie_conv_weights:
@@ -468,7 +468,7 @@ def get_weight_file_name(filter_dims, hidden_channels, pooling_type, activation_
 	return '{}-{}'.format(architecture_identifier, training_identifier)
 
 
-def visualize_cae_filters(sess, autoencoder): 
+def visualize_cae_filters(sess, autoencoder):
 
 	folders = ['filters']
 	cwd = os.getcwd()
@@ -563,7 +563,7 @@ def visualize_ae_representation(sess, input_placeholder, autoencoder, mnist, fol
 
 		max_size 			= np.max(np.array(autoencoder.hidden_channels))
 		hidden_layer_count 	= len(walkthrough)
-		
+
 		rows = hidden_layer_count + 2
 		cols = max_size
 
@@ -580,9 +580,9 @@ def visualize_ae_representation(sess, input_placeholder, autoencoder, mnist, fol
 		plt.axis('off')
 		if show_colorbar:
 			plt.colorbar(orientation="horizontal",fraction=0.07)
-		
+
 		stretcher = 0
-		print 'hlc: ', hidden_layer_count
+		print('hidden layer count: ', hidden_layer_count)
 
 		for c in range(hidden_layer_count):
 			hc_size = walkthrough[c].shape[3]
@@ -592,13 +592,13 @@ def visualize_ae_representation(sess, input_placeholder, autoencoder, mnist, fol
 
 			else:
 				stretcher -= 1
-			
-			print stretcher
+
+			print(stretcher)
 
 			if max_maps_per_layer > 0:
 				hc_size = min(hc_size, max_maps_per_layer) # * stretcher
-			
-			
+
+
 
 			for r in range(hc_size):
 

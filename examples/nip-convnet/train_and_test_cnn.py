@@ -3,7 +3,7 @@
 # ----------------------------------------------------
 
 from tensorflow.python.framework import dtypes
-import tensorflow as tf 
+import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -30,7 +30,7 @@ from tensorflow.python.framework import dtypes
 def main():
 
 	## ############## ##
-	# ARGUMENT PARSING # 
+	# ARGUMENT PARSING #
 	## ############## ##
 	arguments = sys.argv
 
@@ -44,7 +44,7 @@ def main():
 
 		# 2: config file path
 		use_config_file 	= True
-		config_file_path 	= arguments[2] 
+		config_file_path 	= arguments[2]
 		print('Config path 	: {}'.format(config_file_path))
 
 		# 3: initialization options
@@ -81,8 +81,8 @@ def main():
 		test_evaluation = arguments[7]
 
 		evaluate_using_test_set = False
-		evaluation_set_size 	= 1024	
-		evaluation_batch_size 	= 512 
+		evaluation_set_size 	= 1024
+		evaluation_batch_size 	= 512
 
 		if str(test_evaluation) == 'true' or str(test_evaluation) == 'True':
 			final_test_evaluation = True
@@ -107,7 +107,7 @@ def main():
 
 		print('-----------------------------------------------------------------------------')
 
-	
+
 	elif len(arguments) == 1:
 		print('Using default settings from file')
 		## #################### ##
@@ -124,7 +124,7 @@ def main():
 		# the test set should only be used for the final evaluation of a models performance
 		evaluate_using_test_set = False
 		final_test_evaluation 	= True
-		evaluation_set_size 	= 1024 			# set negative value for the whole set or restrain set size 
+		evaluation_set_size 	= 1024 			# set negative value for the whole set or restrain set size
 		evaluation_batch_size 	= 512    		# batch size used for testing
 
 		use_config_file 	= False
@@ -132,16 +132,16 @@ def main():
 		initialization_mode = 'resume'
 		# initialization_mode:
 		# 'resume'						: 	resume training from latest checkpoint in weights/log_folder_name/run_name if possible, otherwise default
-		# 'from_folder'					: 	load last checkpoint from folder given in 
+		# 'from_folder'					: 	load last checkpoint from folder given in
 		# 'pre_trained_encoding'		:	load encoding weights from an auto-encoder
 		# 'default'						: 	init weights at random
 		# ------------------------------
 		# from_folder:
-		model_weights_directory = 'weights/1k_MNIST_CNN/sigmoid/best' 		
+		model_weights_directory = 'weights/1k_MNIST_CNN/sigmoid/best'
 		# pre_trained_encoding
 		pre_trained_conv_weights_directory = 'weights/07_CAE_MNIST_SIGMOID_debug/a55_55-64_64-sigmoid_max_poolingtr128__True'
 		# use_config_file
-		config_file_path 	= 'configs/simple_cnn_config.ini'	
+		config_file_path 	= 'configs/simple_cnn_config.ini'
 
 	else:
 		print('Wrong number of arguments!')
@@ -169,7 +169,7 @@ def main():
 
 
 	elif DATASET == "MNIST_10k":
-		
+
 		N = 10000
 
 		# load mnist
@@ -190,7 +190,7 @@ def main():
 
 
 	elif DATASET == "MNIST_1k":
-		
+
 		N = 1000
 
 		# load mnist
@@ -220,7 +220,7 @@ def main():
 	elif DATASET=="CIFAR10":
 		dataset 		= "cifar_10" 	# signals the train_cnn function that it needs to load the data via cifar_10_input.py
 		one_hot_labels 	= False			# changes the error functions because this cifar-10 version doesn't use a one-hot encoding
-		input_size 		= (24, 24, 3) 
+		input_size 		= (24, 24, 3)
 		num_classes 	= 10
 		nhwd_shape 		= True
 
@@ -257,7 +257,7 @@ def main():
 		# reshape the input to NHWD format
 		x_image = tf.reshape(x, [-1, input_size[0], input_size[1], 1])
 
-	else: 
+	else:
 
 		x = tf.placeholder(tf.float32, [None, input_size[0], input_size[1], input_size[2]], name='input_images')
 		x_image = x
@@ -270,10 +270,10 @@ def main():
 
 	keep_prob = tf.placeholder(tf.float32)
 
-	
+
 
 	## #### ##
-	# CONFIG # 
+	# CONFIG #
 	## #### ##
 
 	config_loader = cfg.ConfigLoader()
@@ -283,7 +283,7 @@ def main():
 		# ARCHITECTURE
 		# feature extraction parameters
 		filter_dims 	= [(5,5), (5,5)]
-		hidden_channels = [32, 32] 
+		hidden_channels = [32, 32]
 		pooling_type  = 'strided_conv' # dont change, std::bac_alloc otherwise (TODO: understand why)
 		strides = None # other strides should not work yet
 		activation_function = 'sigmoid'
@@ -321,7 +321,7 @@ def main():
 		config_dict['batch_size'] 			= batch_size
 		config_dict['max_iterations'] 		= max_iterations
 		config_dict['chk_iterations'] 		= chk_iterations
-		config_dict['dropout_k_p'] 			= dropout_k_p 
+		config_dict['dropout_k_p'] 			= dropout_k_p
 		config_dict['fine_tuning_only'] 	= int(fine_tuning_only)
 		config_dict['step_size'] 			= step_size
 		config_dict['decay_steps']			= decay_steps
@@ -334,7 +334,7 @@ def main():
 		config_loader.configuration_dict = config_dict
 
 	else:
-		# load config from file 
+		# load config from file
 		print('Loading config from file {}'.format(config_file_path))
 		config_loader.load_config_file(config_file_path, 'CNN')
 		config_dict = config_loader.configuration_dict
@@ -345,15 +345,15 @@ def main():
 
 		# init all config variables variables from the file
 		filter_dims 			= config_dict['filter_dims']
-		hidden_channels 		= config_dict['hidden_channels'] 
-		pooling_type  			= config_dict['pooling_type'] 
+		hidden_channels 		= config_dict['hidden_channels']
+		pooling_type  			= config_dict['pooling_type']
 		strides 				= config_dict['strides']
 		activation_function 	= config_dict['activation_function']
 		dense_depths 			= config_dict['dense_depths']
 		batch_size 				= int(config_dict['batch_size'])
 		max_iterations			= int(config_dict['max_iterations'])
 		chk_iterations 			= int(config_dict['chk_iterations'])
-		dropout_k_p				= float(config_dict['dropout_k_p']) 
+		dropout_k_p				= float(config_dict['dropout_k_p'])
 		fine_tuning_only 		= bool(int(config_dict['fine_tuning_only']))
 		step_size				= float(config_dict['step_size'])
 		decay_steps				= int(config_dict['decay_steps'])
@@ -371,7 +371,7 @@ def main():
 
 	architecture_str 	= '(a)'  + '_'.join(map(lambda x: str(x[0]) + str(x[1]), filter_dims)) + '-' + '_'.join(map(str, hidden_channels)) + '-' + activation_function
 	training_str 		= '(tr)' + str(batch_size) + '_' + '_' + str(dropout_k_p)
-	
+
 	if custom_run_name is None:
 		run_name = architecture_str + '|' + training_str
 	else:
@@ -384,7 +384,7 @@ def main():
 	if root_dir_path is not None:
 		log_folder_parent_dir = os.path.join(root_dir_path, 'logs')
 	else:
-		log_folder_parent_dir = 'logs' 
+		log_folder_parent_dir = 'logs'
 	log_path = os.path.join(log_folder_parent_dir, log_folder_name, run_name)
 
 	# folder to store the training weights in:
@@ -394,7 +394,7 @@ def main():
 		model_save_parent_dir = 'weights'
 	save_path = os.path.join(model_save_parent_dir, log_folder_name, run_name)
 	check_dirs = [model_save_parent_dir, os.path.join(model_save_parent_dir, log_folder_name), os.path.join(model_save_parent_dir, log_folder_name), os.path.join(model_save_parent_dir, log_folder_name, run_name), os.path.join(model_save_parent_dir, log_folder_name, run_name, 'best')]
-	
+
 	for directory in check_dirs:
 		if not os.path.exists(directory):
 			os.makedirs(directory)
@@ -408,7 +408,7 @@ def main():
 
 	cnn = CNN(x_image, y_, keep_prob, filter_dims, hidden_channels, dense_depths, pooling_type, activation_function, one_hot_labels=one_hot_labels, step_size = step_size, decay_steps = decay_steps, decay_rate = decay_rate, weight_init_stddev = weight_init_stddev, weight_init_mean = weight_init_mean, initial_bias_value = initial_bias_value, weight_decay_regularizer=weight_decay_regularizer)
 
-	sess = tf.Session() 
+	sess = tf.Session()
 	sess.run(tf.global_variables_initializer())
 
 	# add logwriter for tensorboard
@@ -420,7 +420,7 @@ def main():
 	initialization_finished = False
 
 	if initialization_mode == 'resume' or initialization_mode == 'from_folder':
-		# initialize training with weights from a previous training 
+		# initialize training with weights from a previous training
 
 		cwd = os.getcwd()
 
@@ -491,11 +491,11 @@ def main():
 
 
 	if not initialization_finished:
-		# always train a new autoencoder 
+		# always train a new autoencoder
 		train_cnn(sess, cnn, dataset, x, y_, keep_prob, dropout_k_p, batch_size, init_iteration, max_iterations, chk_iterations, writer, fine_tuning_only, save_path, num_test_images=evaluation_set_size, test_batch_size=evaluation_batch_size, evaluate_using_test_set=evaluate_using_test_set, final_test_evaluation=final_test_evaluation)
 
 
-	# TODO Sabbir: store the current config in a config file in the logs/log_folder_name/run_name folder 
+	# TODO Sabbir: store the current config in a config file in the logs/log_folder_name/run_name folder
 
 	writer.close()
 	sess.close()

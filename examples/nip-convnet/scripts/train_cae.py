@@ -15,7 +15,7 @@ def train_ae(sess, writer,  input_placeholder, autoencoder, data, cae_dir, weigh
 		image_batch, label_batch = cifar10_input.distorted_inputs(CIFAR_LOCATION, batch_size)
 		test_image_node, test_label_node = cifar10_input.inputs(False, CIFAR_LOCATION, batch_size)
 
-		# add the some test images to the summary 
+		# add the some test images to the summary
 		autoencoder.add_summary(tf.summary.image('some example input', test_image_node))
 		autoencoder.update_summaries()
 
@@ -48,7 +48,7 @@ def train_ae(sess, writer,  input_placeholder, autoencoder, data, cae_dir, weigh
 		if chk_iterations > 100 and i % 100 == 0:
 			print('...iteration {}'.format(i))
 
-	  
+
 		if i % chk_iterations == 0:
 
 
@@ -82,7 +82,7 @@ def train_ae(sess, writer,  input_placeholder, autoencoder, data, cae_dir, weigh
 
 
 			writer.add_summary(summary, i)
-			
+
 		sess.run(optimizer_node, feed_dict={input_placeholder: batch_xs})
 
 
