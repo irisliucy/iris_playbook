@@ -61,16 +61,22 @@ def attach_scalar_summary(var, name, summ_list):
 """
 
 
-def weight_variable(input_dim, output_dim, filter_size=None, name=None, stretch_factor=1, dtype=tf.float32):
+def weight_variable(input_dim, output_dim, input_channel=None, output_channel=None, filter_size=None, name=None, stretch_factor=1, dtype=tf.float32):
     """Creates a weight variable with initial weights as recommended by Bengio.
     Reference: http://arxiv.org/pdf/1206.5533v2.pdf. If sigmoid is used as the activation
     function, then a stretch_factor of 4 is recommended."""
     limit = sqrt(6 / (input_dim + output_dim))
-    if filter_size:
-        initial = tf.random_uniform(shape=[input_dim, output_dim, filter_size, filter_size],
+    if filter_size and input_channel and output_channel:
+        initial = tf.random_uniform(shape=[filter_size, filter_size, input_channel, output_channel],
                                     minval=-(stretch_factor * limit),
                                     maxval=stretch_factor * limit,
                                     dtype=dtype)
+    # if filter_size:
+    #     initial = tf.random_uniform(shape=[input_dim, output_dim, filter_size, filter_size],
+    #     # initial = tf.random_uniform(shape=[filter_size, filter_size, input_dim, output_dim],
+    #                                 minval=-(stretch_factor * limit),
+    #                                 maxval=stretch_factor * limit,
+    #                                 dtype=dtype)
     else:
         initial = tf.random_uniform(shape=[input_dim, output_dim],
                                     minval=-(stretch_factor * limit),
@@ -108,7 +114,7 @@ def corrupt(tensor, corruption_level=0.05):
 class NNLayer:
     """A container class to represent a hidden layer in the autoencoder network."""
 
-    def __init__(self, input_dim, output_dim, name="hidden_layer", activation=None, weights=None, biases=None):
+    def __init__(self, input_dim, output_dim, pooling_type, stride, name="hidden_layer", activation=None, weights=None, biases=None):
         """Initializes an NNLayer with empty weights/biases (default). Weights/biases
         are meant to be updated during pre-training with set_wb. Also has methods to
         transform an input_tensor to an encoded representation via the weights/biases
@@ -128,6 +134,11 @@ class NNLayer:
         self.biases = biases        # Evaluated numpy array, static
         self._weights = None        # Weights Variable, dynamic
         self._biases = None         # Biases Variable, dynamic
+
+        self.pooling_type = pooling_type
+        self.stride = stride
+
+
 
     @property
     def is_pretrained(self):
@@ -205,13 +216,26 @@ class SCDAutoencoder:
         assert 0 <= self.noise <= 1, "Invalid noise value given: %s" % self.noise
         assert self.loss in ALLOWED_LOSSES
 
-    def __init__(self, data, activations, sess, noise=0.0, filter_dims, hidden_channels,
-                    step_size=0.0001, weight_init_stddev=0.0001, weight_init_mean=0.0001, initial_bias_value=0.0001,
-                    strides=None, pooling_type= 'strided_conv', tie_conv_weights=True,
+    def __init__(self, dims, activations, sess,
+                    filter_dims,
+                    hidden_channels,
+                    noise=0.0, stride=[1,2,2,1],
+                    step_size=0.0001,
+                    weight_init_stddev=0.0001,
+                    weight_init_mean=0.0001,
+                    initial_bias_value=0.0001,
+                    strides=None,
+                    pooling_type='max_pooling',
+                    tie_conv_weights=True,
                     # store_model_walkthrough = visualize_model_walkthrough,
                     # relu_leak = relu_leak,
                     # optimizer_type = optimizer_type,
                     # output_reconstruction_activation=output_reconstruction_activation,
+                    loss="cross-entropy",
+                    finetune_lr=0.001,
+                    pretrain_lr=0.001,
+                    batch_size=100,
+                    print_step=100,
                     regularization_factor=0):
     # def __init__(self, dims, activations, sess, noise=0.0, loss="cross-entropy",
     #              pretrain_lr=0.001, finetune_lr=0.001, batch_size=100, print_step=100):
@@ -250,18 +274,19 @@ class SCDAutoencoder:
         :param batch_size: The number of cases fed to the network in each batch from file.
         :param print_step: The number of batches processed before each print progress step.
         """
-        self.data = data
+        # self.data = data
         self.input_dim = dims[0]  # The dimension of the raw input
         self.output_dim = dims[-1]  # The output dimension of the last layer: fully encoded input
-        self.hidden_layers = self.create_new_layers(dims, activations)
+        self.hidden_layers = self.create_new_layers(dims, activations, pooling_type, stride)
         self.sess = sess
 
         # convolution
-        self.filter_dims = filter_dims 		# height and width of the conv kernels 	for each layer
-		self.hidden_channels = hidden_channels	# number of feature maps for each layer
+        self.filter_dims = filter_dims          # height and width of the conv kernels for each layer
+        self.hidden_channels = hidden_channels  # number of feature maps for each layer
         self.strides = strides
         self.pooling_type = pooling_type
         self.tie_conv_weights = tie_conv_weights
+        self.filter_size = [1, 1, 1, 1] # [5, 5, 3, 3] 
 
         # denosising
         self.corruption = False # optionally apply denosing autoencoder
@@ -272,7 +297,6 @@ class SCDAutoencoder:
         self.finetune_lr = finetune_lr
         self.batch_size = batch_size
         self.print_step = print_step
-        self.filter_size = [1, 1, 1, 1]
 
         self.check_assertions()
         print("Initialized SDA network with dims %s, activations %s, noise %s, "
@@ -408,7 +432,7 @@ class SCDAutoencoder:
             ))
 
     @staticmethod
-    def create_new_layers(dims, activations):
+    def create_new_layers(dims, activations, pooling_type, stride):
         """Creates and sets up template layers (un-pretrained) for the network based on dimensions
         and activation functions.
 
@@ -419,7 +443,7 @@ class SCDAutoencoder:
         assert len(dims) >= 2 and len(activations) >= 1, "Invalid number of layers given by `dims` and `activations`."
         assert set(activations + ALLOWED_ACTIVATIONS) == set(ALLOWED_ACTIVATIONS), "Incorrect activation(s) given."
         assert len(dims) == len(activations) + 1, "Incorrect number of layers/activations."
-        return [NNLayer(dims[i], dims[i + 1], "hidden_layer_" + str(i), activations[i])
+        return [NNLayer(dims[i], dims[i + 1], pooling_type, stride, "hidden_layer_" + str(i), activations[i])
                 for i in range(len(activations))]
 
     ###############
@@ -452,11 +476,11 @@ class SCDAutoencoder:
             that iterates through the entire train dataset.
         :return: None
         """
-        print("Starting to pretrain autoencoder network.")
+        print("Starting to pretrain convolutional autoencoder network.")
         for i in range(len(self.hidden_layers)):
             x_train_gen = x_train_gen_f()
             self.pretrain_layer(i, x_train_gen)
-        print("Finished pretraining of autoencoder network.")
+        print("Finished pretraining of convolutional autoencoder network.")
 
     def pretrain_layer(self, depth, batch_generator):
         """Pretrains the layer at depth `depth` feeding data from batch_generator. Do not call
@@ -495,8 +519,9 @@ class SCDAutoencoder:
             with tf.name_scope("encoding_vars"):
                 stretch_factor = 4 if self.loss == "sigmoid" else 1
                 encode = {
-                    "weights": weight_variable(input_dim, output_dim, filter_size=self.filter_size[depth], name="weights", stretch_factor=stretch_factor),
-                    "biases": bias_variable(output_dim, initial_value=0, name="biases")
+                    "weights": weight_variable(input_dim, output_dim, input_channel=self.hidden_channels[depth], output_channel=self.hidden_channels[depth+1], filter_size=self.filter_size[depth], name="weights", stretch_factor=stretch_factor),
+                    # "biases": bias_variable(output_dim, initial_value=0, name="biases")
+                    "biases": bias_variable(self.hidden_channels[depth+1], initial_value=0, name="biases")
                 }
                 attach_variable_summaries(encode["weights"], encode["weights"].name, summ_list=summary_list)
                 attach_variable_summaries(encode["biases"], encode["biases"].name, summ_list=summary_list)
@@ -504,24 +529,34 @@ class SCDAutoencoder:
             # Decoder's weight and biases
             with tf.name_scope("decoding_vars"):
                 decode = {
-                    "weights": tf.transpose(encode["weights"], name="transposed_weights"),  # Tied weights
-                    "biases": bias_variable(input_dim, initial_value=0, name="decode_biases")
+                    "weights": tf.Variable(tf.truncated_normal(tf.shape(encode["weights"])), name="transposed_weights"),
+                    # "weights": tf.transpose(encode["weights"], name="transposed_weights"),  # Tied weights
+                    # "biases": bias_variable(input_dim, initial_value=0, name="decode_biases")
+                    "biases": bias_variable(self.hidden_channels[depth], initial_value=0, name="decode_biases")
                 }
                 attach_variable_summaries(decode["weights"], decode["weights"].name, summ_list=summary_list)
                 attach_variable_summaries(decode["biases"], decode["biases"].name, summ_list=summary_list)
 
             with tf.name_scope("encoded_and_decoded"):
+                print('input shape for encoder: ', x_latent.shape)
+                print('filter shape for encoder: ', encode["weights"])
                 encoded = hidden_layer.activate(tf.add(
                             tf.nn.conv2d(
-                                x_latent,
-                                encode["weights"],
+                                x_latent,   # [? ,28, 28, 1]
+                                encode["weights"], # [1, 1, 1, 100]
                                 strides=[1, 2, 2, 1],
                                 padding='SAME'),
                             encode["biases"]))
+                if self.pooling_type == 'max_pooling':
+                    pool_out = tf.nn.max_pool(encoded, [1,2,2,1], [1,2,2,1], padding='SAME', name='max_pool')
+                    encoded = pool_out
+                print('input shapefor decoder: ', encoded.shape)
+                print('filter shape for decoder: ', decode["weights"])
                 decoded = hidden_layer.activate(tf.add(
                             tf.nn.conv2d_transpose(
-                                encoded,
-                                decode["weights"],
+                                encoded, # [?, 14, 14, 100]
+                                # [14, 14, 100, 1],
+                                decode["weights"], # now [100, 1, 1, 1] should be [14, 14, 150, 100]
                                 tf.stack([tf.shape(x_original)[0], x_latent.shape[3], x_latent.shape[2], x_latent.shape[1]]),
                                 strides=[1, 2, 2, 1],
                                 padding='SAME'),

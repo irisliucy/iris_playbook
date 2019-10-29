@@ -12,7 +12,6 @@ import os
 
 mnist = input_data.read_data_sets("./MNIST_data/", one_hot=True)
 
-
 def get_mnist_batch_generator(is_train, batch_size, batch_limit=100):
     if is_train:
         for _ in range(batch_limit):
@@ -29,7 +28,7 @@ def get_mnist_batch_xs_generator(is_train, batch_size, batch_limit=100):
 
 def sda():
     sess = tf.Session()
-    sda = SDAutoencoder(dims=[784, 400, 200, 80],
+    sda = SDAutoencoder(dims=[784, 400, 200, 10],
                     activations=["sigmoid", "sigmoid", "sigmoid"],
                     sess=sess,
                     noise=0.20,
@@ -69,7 +68,11 @@ def sca():
     sca = SCDAutoencoder(dims=[784, 400, 200, 80],
                     activations=["relu", "relu", "relu"],
                     sess=sess,
+                    filter_dims=[(5,5), (5,5), (3,3)],
+                    hidden_channels=[1, 100, 150, 200],
                     noise=0.20,
+                    stride=[1, 2, 2, 1],
+                    pooling_type='max_pooling',
                     loss="cross-entropy",
                     pretrain_lr=0.0001,
                     finetune_lr=0.0001)

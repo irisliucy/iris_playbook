@@ -49,9 +49,9 @@ class CAE:
 
 		if str(strides) == 'None':
 			if pooling_type == 'strided_conv':
-				self.strides = [self.strided_conv_strides 	for filter in filter_dims]
+				self.strides = [self.strided_conv_strides for filter in filter_dims]
 			else:
-				self.strides = [self.std_strides 		warning	for filter in filter_dims]
+				self.strides = [self.std_strides  for filter in filter_dims]
 
 		self.pooling_type 			= pooling_type
 		self.activation_function	= activation_function
@@ -205,7 +205,9 @@ class CAE:
 					strides = self.strided_conv_strides
 				else:
 					strides = self.std_strides
-
+				print('tmp tensor ', tmp_tensor, tmp_tensor.shape) # [?, 28, 28, 1]
+				print('filter_shape: ', filter_shape)  # [5, 5, 1, 100]
+				print('stride ', self.strides[layer]) # [1,1,1,1]
 				conv_preact = tf.add(tf.nn.conv2d(tmp_tensor, W, strides = self.strides[layer], padding='SAME'),  b, name='conv_{}_preactivation'.format(layer))
 
 				if self.add_tensorboard_summary:
@@ -379,7 +381,7 @@ class CAE:
 					# conv2d_transpose with upsampling
 					upsampling_strides = [1,2,2,1]
 					reconst_preact = tf.add( tf.nn.conv2d_transpose(tmp_tensor, W, self.pre_conv_shapes[layer], upsampling_strides), c, name='reconstruction_preact_{}'.format(layer))
-
+					print(self.pre_conv_shapes[layer].shape)
 				else:
 					# conv2d_transpose without upsampling
 					if self.pooling_type == 'strided_conv':

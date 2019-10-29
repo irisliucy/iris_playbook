@@ -28,8 +28,11 @@ img_transform = transforms.Compose([
     transforms.ToTensor(),
 ])
 
-dataset = CIFAR10('../data/cifar10/', transform=img_transform)
-dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=8)
+dataset = CIFAR10(root='./data', transform=img_transform)
+dataloader = DataLoader(dataset,
+                batch_size=batch_size,
+                shuffle=True,
+                num_workers=8)
 
 model = StackedAutoEncoder().cuda()
 
@@ -48,7 +51,7 @@ for epoch in range(num_epochs):
         target = Variable(target).cuda()
         img = Variable(img).cuda()
         features = model(img).detach()
-        prediction = classifier(features.view(features.size(0), -1))
+        prediction = classifier(features.view(features.size(0), -1))  # feed the features trained from CAE to a linear classifier
         loss = criterion(prediction, target)
 
         # Zero gradients, perform a backward pass, and update the weights.
