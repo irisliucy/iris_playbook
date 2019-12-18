@@ -1,5 +1,6 @@
 import os
 import time
+os.environ["CUDA_VISIBLE_DEVICES"] = "1,2,3,4,5"  # must be before importing pytorch
 
 import torch
 import torchvision
@@ -11,6 +12,7 @@ from torchvision.datasets import MNIST, CIFAR10
 from torchvision.utils import save_image
 
 from model import StackedAutoEncoder
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 version = 'stackedCAE_Dec_19'
 if not os.path.exists('./' + version):
@@ -41,6 +43,11 @@ dataloader = DataLoader(dataset,
                 num_workers=8)
 
 model = StackedAutoEncoder().cuda()
+if torch.cuda.device_count() > 1:
+  print("Let's use", torch.cuda.device_count(), "GPUs!")
+  model = nn.DataParallel(model)
+
+model.to(device)
 
 for epoch in range(num_epochs):
     if epoch % 10 == 0:
@@ -73,7 +80,7 @@ for epoch in range(num_epochs):
     img, _ = data
     img = Variable(img).cuda()
     features, x_reconstructed = model(img)
-    reconstruction_loss = torch.mean((x_reconstructed.data - img.data)**2)
+    reconstruction_loss = torch.mean((x_reconstructed.data - img.data)**2) # MSE
 
     if epoch % 10 == 0:
         print("Saving epoch {}".format(epoch))
@@ -86,7 +93,6 @@ for epoch in range(num_epochs):
     print("Feature Statistics\tMean: {:.4f}\t\tMax: {:.4f}\t\tSparsity: {:.4f}%".format(
         torch.mean(features.data), torch.max(features.data), torch.sum(features.data == 0.0)*100 / features.data.numel())
     )
-    print("MSE: {}".format(loss))
     print("Linear classifier performance: {}/{} = {:.2f}%".format(correct, len(dataloader)*batch_size, 100*float(correct) / (len(dataloader)*batch_size)))
     print("="*80)
 
