@@ -29,7 +29,7 @@ batch_size = 128
 
 img_transform = transforms.Compose([
     #transforms.RandomRotation(360),
-    transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0, hue=0),
+    # transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0, hue=0),
     transforms.ToTensor(),
 ])
 
