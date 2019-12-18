@@ -29,6 +29,7 @@ img_transform = transforms.Compose([
 ])
 
 dataset = CIFAR10(root='./data', transform=img_transform)
+# Data Loader for easy mini-batch return in training
 dataloader = DataLoader(dataset,
                 batch_size=batch_size,
                 shuffle=True,
@@ -39,19 +40,19 @@ model = StackedAutoEncoder().cuda()
 for epoch in range(num_epochs):
     if epoch % 10 == 0:
         # Test the quality of our features with a randomly initialzed linear classifier.
-        classifier = nn.Linear(512 * 16, 10).cuda()
+        classifier = nn.Linear(512 * 16, 10).cuda() # in_features = 512*16, out_features = 10
         criterion = nn.CrossEntropyLoss()
         optimizer = torch.optim.Adam(classifier.parameters(), lr=0.001)
 
-    model.train()
+    model.train() # self.training = True
     total_time = time.time()
     correct = 0
     for i, data in enumerate(dataloader):
         img, target = data
         target = Variable(target).cuda()
         img = Variable(img).cuda()
-        features = model(img).detach()
-        prediction = classifier(features.view(features.size(0), -1))  # feed the features trained from CAE to a linear classifier
+        features = model(img).detach() # call StackedAutoEncoder's forward()
+        prediction = classifier(features.view(features.size(0), -1))  # Set in_features as feature extracted; feed the features trained from CAE to a linear classifier
         loss = criterion(prediction, target)
 
         # Zero gradients, perform a backward pass, and update the weights.
@@ -80,6 +81,7 @@ for epoch in range(num_epochs):
     print("Feature Statistics\tMean: {:.4f}\t\tMax: {:.4f}\t\tSparsity: {:.4f}%".format(
         torch.mean(features.data), torch.max(features.data), torch.sum(features.data == 0.0)*100 / features.data.numel())
     )
+    print("MSE: {}".format(loss))
     print("Linear classifier performance: {}/{} = {:.2f}%".format(correct, len(dataloader)*batch_size, 100*float(correct) / (len(dataloader)*batch_size)))
     print("="*80)
 

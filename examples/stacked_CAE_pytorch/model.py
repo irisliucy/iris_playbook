@@ -42,11 +42,11 @@ class CDAutoEncoder(nn.Module):
         if self.training:
             x_reconstruct = self.backward_pass(y)
             loss = self.criterion(x_reconstruct, Variable(x.data, requires_grad=False))
-            self.optimizer.zero_grad()
-            loss.backward()
-            self.optimizer.step()
+            self.optimizer.zero_grad() # use the optimizer object to zero all of the gradients for the variables it will update
+            loss.backward() # Use autograd to compute the backward pass
+            self.optimizer.step() # step function on an Optimizer to update to its parameters
 
-        return y.detach()
+        return y.detach() # remove output layer, deteach the output from the graph -> no backprop
 
     def reconstruct(self, x):
         return self.backward_pass(x)
@@ -66,9 +66,9 @@ class StackedAutoEncoder(nn.Module):
         self.ae3 = CDAutoEncoder(256, 512, 2)
 
     def forward(self, x):
-        a1 = self.ae1(x)
-        a2 = self.ae2(a1)
-        a3 = self.ae3(a2)
+        a1 = self.ae1(x) # call ae1's forward()
+        a2 = self.ae2(a1) # call ae2's forward()
+        a3 = self.ae3(a2) # call ae3's forward()
 
         if self.training:
             return a3
