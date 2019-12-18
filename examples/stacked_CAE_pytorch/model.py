@@ -47,7 +47,7 @@ class CDAutoEncoder(nn.Module):
             loss.backward() # Use autograd to compute the backward pass
             self.optimizer.step() # step function on an Optimizer to update to its parameters
 
-        return y.detach() # remove output layer, deteach the output from the graph -> no backprop
+        return y.detach() # remove output layer, deteach the output from the graph -> no gradient 
 
     def reconstruct(self, x):
         return self.backward_pass(x)
