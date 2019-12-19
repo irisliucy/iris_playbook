@@ -1,23 +1,19 @@
 # stacked-autoencoder-pytorch
-Stacked denoising convolutional autoencoder written in Pytorch for some experiments.
+Stacked convolutional autoencoder written in Pytorch for some experiments.
 
-This model performs unsupervised reconstruction of the input using a setup similar to Hinton in https://www.cs.toronto.edu/~hinton/science.pdf.
-Instead of training layers one at a time, I allow them to train at the same time. Each is trained locally and no backpropagation is used.
-The autoencoder is denoising as in http://machinelearning.org/archive/icml2008/papers/592.pdf and convolutional. ReLU activation function is used.
-
-The quality of the feature vector is tested with a linear classifier reinitialized every 10 epochs.
+[PPT for methods & model architecture](https://docs.google.com/presentation/d/1c8oRVfZMD2TRwqL7cGnUZ8MXTRaEiZk3MdKG9m4lxvE/edit?usp=sharing)
 
 Setup:
 - Python 3
 - Pytorch 0.3.0 with torchvision
 
-Run "python run.py" to start training.
+Run `python run.py` to start training.
 
 Args:
 - '--gpu': specify the number of gpu(s)
 - '--save-dir': directory to save the results
 
-example: "python run.py --save-dir 'stacked_CAE_Dec_19_2' --gpu '0,1,2,3,4,5'"
+example: `python run.py --save-dir 'stacked_CAE_Dec_19_2' --gpu '0,1,2,3,4,5'`
 
 Observations:
   - Although the loss doesn't propagate through layers the overall quality of the reconstruction improves anyways.
