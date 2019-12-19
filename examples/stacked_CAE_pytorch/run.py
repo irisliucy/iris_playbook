@@ -49,6 +49,7 @@ if torch.cuda.device_count() > 1:
 
 model.to(device)
 
+start_time = time.time()
 for epoch in range(num_epochs):
     if epoch % 10 == 0:
         # Test the quality of our features with a randomly initialzed linear classifier.
@@ -96,4 +97,6 @@ for epoch in range(num_epochs):
     print("Linear classifier performance: {}/{} = {:.2f}%".format(correct, len(dataloader)*batch_size, 100*float(correct) / (len(dataloader)*batch_size)))
     print("="*80)
 
+end_time = time.time() - start_time
+print("Total training time: {:.2f} sec".format(end_time))
 torch.save(model.state_dict(), './' + version + '/CDAE.pth')
