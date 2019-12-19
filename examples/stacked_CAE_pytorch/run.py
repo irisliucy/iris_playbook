@@ -1,6 +1,7 @@
+import argparse
 import os
+import shutil
 import time
-os.environ["CUDA_VISIBLE_DEVICES"] = "1,2,3,4,5"  # must be before importing pytorch
 
 import torch
 import torchvision
@@ -21,82 +22,94 @@ if not os.path.exists('./' + version):
 if not os.path.exists('./'+ version + '/imgs'):
     os.mkdir('./'+ version + '/imgs')
 
-def to_img(x):
-    x = x.view(x.size(0), 3, 32, 32)
-    return x
-
+parser = argparse.ArgumentParser(description='PyTorch CAE Training')
+parser.add_argument('--gpu', default=[0,1], action='store_true',
+                    help='used gpu')
+parser.add_argument('--save-dir', dest='save_dir',
+                    help='The directory used to save the trained models',
+                    default='save_temp', type=str)
 
 num_epochs = 1000
 batch_size = 128
 
-img_transform = transforms.Compose([
-    #transforms.RandomRotation(360),
-    # transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0, hue=0),
-    transforms.ToTensor(),
-])
+def to_img(x):
+    x = x.view(x.size(0), 3, 32, 32)
+    return x
 
-dataset = CIFAR10(root='./data', transform=img_transform)
-# Data Loader for easy mini-batch return in training
-dataloader = DataLoader(dataset,
-                batch_size=batch_size,
-                shuffle=True,
-                num_workers=8)
+def main():
+    img_transform = transforms.Compose([
+        #transforms.RandomRotation(360),
+        # transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0, hue=0),
+        transforms.ToTensor(),
+    ])
 
-model = StackedAutoEncoder().cuda()
-if torch.cuda.device_count() > 1:
-  print("Let's use", torch.cuda.device_count(), "GPUs!")
-  model = nn.DataParallel(model)
+    dataset = CIFAR10(root='./data', transform=img_transform)
+    # Data Loader for easy mini-batch return in training
+    dataloader = DataLoader(dataset,
+                    batch_size=batch_size,
+                    shuffle=True,
+                    num_workers=8)
 
-model.to(device)
 
-start_time = time.time()
-for epoch in range(num_epochs):
-    if epoch % 10 == 0:
-        # Test the quality of our features with a randomly initialzed linear classifier.
-        classifier = nn.Linear(512 * 16, 10).cuda() # in_features = 512*16, out_features = 10
-        criterion = nn.CrossEntropyLoss()
-        optimizer = torch.optim.Adam(classifier.parameters(), lr=0.001)
+    model = StackedAutoEncoder().cuda()
+    os.environ["CUDA_VISIBLE_DEVICES"] = ','.join(str(x) for x in args.gpu)
+    print('Running model on GPUs {}......'.format(','.join(str(x) for x in args.gpu)))
+    if torch.cuda.device_count() > 1:
+      model = nn.DataParallel(model)
 
-    model.train() # self.training = True
-    total_time = time.time()
-    correct = 0
-    for i, data in enumerate(dataloader):
-        img, target = data
-        target = Variable(target).cuda()
+    model.to(device)
+
+    start_time = time.time()
+    for epoch in range(num_epochs):
+        if epoch % 10 == 0:
+            # Test the quality of our features with a randomly initialzed linear classifier.
+            classifier = nn.Linear(512 * 16, 10).cuda() # in_features = 512*16, out_features = 10
+            criterion = nn.CrossEntropyLoss()
+            optimizer = torch.optim.Adam(classifier.parameters(), lr=0.001)
+
+        model.train() # self.training = True
+        total_time = time.time()
+        correct = 0
+        for i, data in enumerate(dataloader):
+            img, target = data
+            target = Variable(target).cuda()
+            img = Variable(img).cuda()
+            features = model(img).detach() # call StackedAutoEncoder's forward()
+            prediction = classifier(features.view(features.size(0), -1))  # Set in_features as feature extracted; feed the features trained from CAE to a linear classifier
+            loss = criterion(prediction, target)
+
+            # Zero gradients, perform a backward pass, and update the weights.
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            pred = prediction.data.max(1, keepdim=True)[1]
+            correct += pred.eq(target.data.view_as(pred)).cpu().sum()
+
+        total_time = time.time() - total_time
+
+        model.eval()
+        img, _ = data
         img = Variable(img).cuda()
-        features = model(img).detach() # call StackedAutoEncoder's forward()
-        prediction = classifier(features.view(features.size(0), -1))  # Set in_features as feature extracted; feed the features trained from CAE to a linear classifier
-        loss = criterion(prediction, target)
+        features, x_reconstructed = model(img)
+        reconstruction_loss = torch.mean((x_reconstructed.data - img.data)**2) # MSE
 
-        # Zero gradients, perform a backward pass, and update the weights.
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-        pred = prediction.data.max(1, keepdim=True)[1]
-        correct += pred.eq(target.data.view_as(pred)).cpu().sum()
+        if epoch % 10 == 0:
+            print("Saving epoch {}".format(epoch))
+            orig = to_img(img.cpu().data)
+            save_image(orig, './' + version + '/imgs/orig_{}.png'.format(epoch))
+            pic = to_img(x_reconstructed.cpu().data)
+            save_image(pic, './' + version + '/imgs/reconstruction_{}.png'.format(epoch))
 
-    total_time = time.time() - total_time
+        print("Epoch {} complete\tTime: {:.4f}s\t\tLoss: {:.4f}".format(epoch, total_time, reconstruction_loss))
+        print("Feature Statistics\tMean: {:.4f}\t\tMax: {:.4f}\t\tSparsity: {:.4f}%".format(
+            torch.mean(features.data), torch.max(features.data), torch.sum(features.data == 0.0)*100 / features.data.numel())
+        )
+        print("Linear classifier performance: {}/{} = {:.2f}%".format(correct, len(dataloader)*batch_size, 100*float(correct) / (len(dataloader)*batch_size)))
+        print("="*80)
 
-    model.eval()
-    img, _ = data
-    img = Variable(img).cuda()
-    features, x_reconstructed = model(img)
-    reconstruction_loss = torch.mean((x_reconstructed.data - img.data)**2) # MSE
+    end_time = time.time() - start_time
+    print("Total training time: {:.2f} sec".format(end_time))
+    torch.save(model.state_dict(), './' + version + '/CDAE.pth')
 
-    if epoch % 10 == 0:
-        print("Saving epoch {}".format(epoch))
-        orig = to_img(img.cpu().data)
-        save_image(orig, './' + version + '/imgs/orig_{}.png'.format(epoch))
-        pic = to_img(x_reconstructed.cpu().data)
-        save_image(pic, './' + version + '/imgs/reconstruction_{}.png'.format(epoch))
-
-    print("Epoch {} complete\tTime: {:.4f}s\t\tLoss: {:.4f}".format(epoch, total_time, reconstruction_loss))
-    print("Feature Statistics\tMean: {:.4f}\t\tMax: {:.4f}\t\tSparsity: {:.4f}%".format(
-        torch.mean(features.data), torch.max(features.data), torch.sum(features.data == 0.0)*100 / features.data.numel())
-    )
-    print("Linear classifier performance: {}/{} = {:.2f}%".format(correct, len(dataloader)*batch_size, 100*float(correct) / (len(dataloader)*batch_size)))
-    print("="*80)
-
-end_time = time.time() - start_time
-print("Total training time: {:.2f} sec".format(end_time))
-torch.save(model.state_dict(), './' + version + '/CDAE.pth')
+if __name__ == '__main__':
+    main()
