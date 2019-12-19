@@ -15,19 +15,22 @@ from torchvision.utils import save_image
 from model import StackedAutoEncoder
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-version = 'stackedCAE_Dec_19'
-if not os.path.exists('./' + version):
-    os.mkdir('./' + version)
-
-if not os.path.exists('./'+ version + '/imgs'):
-    os.mkdir('./'+ version + '/imgs')
-
 parser = argparse.ArgumentParser(description='PyTorch CAE Training')
-parser.add_argument('--gpu', default=[0,1], action='store_true',
-                    help='used gpu')
-parser.add_argument('--save-dir', dest='save_dir',
-                    help='The directory used to save the trained models',
-                    default='save_temp', type=str)
+parser.add_argument('--gpu', default=[0,1],
+                    help='used gpu', type=str)
+parser.add_argument('--save-dir', default='stackedCAE', dest='save_dir',
+                    help='The directory used to save the trained models'
+                    , type=str)
+global args
+args = parser.parse_args()
+
+# Check the save_dir exists or not
+save_result_path = 'results/' + args.save_dir
+if not os.path.exists(save_result_path):
+    os.makedirs(save_result_path)
+
+if not os.path.exists(save_result_path + '/imgs'):
+    os.mkdir(save_result_path + '/imgs')
 
 num_epochs = 1000
 batch_size = 128
@@ -53,7 +56,7 @@ def main():
 
     model = StackedAutoEncoder().cuda()
     os.environ["CUDA_VISIBLE_DEVICES"] = ','.join(str(x) for x in args.gpu)
-    print('Running model on GPUs {}......'.format(','.join(str(x) for x in args.gpu)))
+    print('Running model on GPUs {}......'.format(','.join(str(x).split(',')[0] for x in args.gpu)))
     if torch.cuda.device_count() > 1:
       model = nn.DataParallel(model)
 
@@ -96,9 +99,9 @@ def main():
         if epoch % 10 == 0:
             print("Saving epoch {}".format(epoch))
             orig = to_img(img.cpu().data)
-            save_image(orig, './' + version + '/imgs/orig_{}.png'.format(epoch))
+            save_image(orig, './' + save_result_path + '/imgs/orig_{}.png'.format(epoch))
             pic = to_img(x_reconstructed.cpu().data)
-            save_image(pic, './' + version + '/imgs/reconstruction_{}.png'.format(epoch))
+            save_image(pic, './' + save_result_path + '/imgs/reconstruction_{}.png'.format(epoch))
 
         print("Epoch {} complete\tTime: {:.4f}s\t\tLoss: {:.4f}".format(epoch, total_time, reconstruction_loss))
         print("Feature Statistics\tMean: {:.4f}\t\tMax: {:.4f}\t\tSparsity: {:.4f}%".format(
@@ -109,7 +112,7 @@ def main():
 
     end_time = time.time() - start_time
     print("Total training time: {:.2f} sec".format(end_time))
-    torch.save(model.state_dict(), './' + version + '/CDAE.pth')
+    torch.save(model.state_dict(), './' + save_result_path + '/CDAE.pth')
 
 if __name__ == '__main__':
     main()
